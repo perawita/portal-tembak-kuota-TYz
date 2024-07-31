@@ -4,22 +4,22 @@ namespace App\Http\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
-class xlv2
+class em
 {
     protected $number;
+    protected $mail;
 
     /**
-     * Constructor method for xlv2 class.
-     *
-     * Initializes a new instance of the class with the provided phone number.
-     * If the provided number starts with '0', it will be replaced with '62' to comply with
-     * the Indonesian phone number format.
+     * Constructor method for Em class.
      *
      * @param string $number The phone number to be processed.
+     * @param string $email The email to be processed.
      */
-    public function __construct($number)
+    public function __construct($number, $email)
     {
+        // Validasi number
         if (substr($number, 0, 1) === '0') {
             // If the provided number starts with '0', replace it with '62'
             $this->number = '62' . substr($number, 1);
@@ -27,100 +27,105 @@ class xlv2
             // If the provided number does not start with '0', keep it as is
             $this->number = $number;
         }
-    }
 
-
-
-    /**
-     * Carry out the authentication process using the provided API.
-     *
-     * @return array|null The array contains authentication data if successful, null if failed.
-     */
-    public function authenticate()
-    {
-        // Request pertama
-        $response1 = Http::withHeaders([
-            'accept-api-version' => 'resource=2.1, protocol=1.0',
-            'accept-encoding' => 'gzip',
-            'user-agent' => 'okhttp/4.3.1'
-        ])->post('https://ciam-rajaampat.xl.co.id/am/json/realms/xl/authenticate?authIndexType=service&authIndexValue=otp');
-
-        if ($response1->status() === 200) {
-            $data = $response1->json();
-
-            if ($data !== null && isset($data['authId'])) {
-                $auth = $data['authId'];
-            } else {
-                return null;
-            }
+        // Validasi email
+        if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $this->mail = $email;
         } else {
             return null;
         }
+    }
 
-        // Request kedua
-        $response2 = Http::withHeaders([
-            'accept-api-version' => 'resource=2.1, protocol=1.0',
-            'content-type' => 'application/json',
-            'Accept' => 'application/json',
-            'accept-encoding' => 'gzip',
-            'user-agent' => 'okhttp/4.3.1'
-        ])->post('https://ciam-rajaampat.xl.co.id/am/json/realms/xl/authenticate', [
-            'authId' => $auth,
-            'stage' => 'MSISDN',
+    // Fungsi untuk membuat UUID v4
+    private function generateUUIDv4()
+    {
+        return (string) Str::uuid();
+    }
+
+    // Fungsi untuk mengirimkan permintaan HTTP
+    private function sendHttpRequest($url, $postData, $headers)
+    {
+        $response = Http::withHeaders($headers)->post($url, $postData);
+
+        if ($response->failed()) {
+            return null;
+        }
+
+        return $response->json();
+    }
+
+    public function authenticate()
+    {
+        $urlCurl = "https://ciam-rajaampat.xl.co.id/am/json/realms/xl/authenticate?authIndexType=service&authIndexValue=xlslotpbyemail";
+
+        // Langkah 1: Mendapatkan authId awal
+        $headersStep1 = [
+            'x-dynatrace: MT_3_4_2797956835_2-0_24d94a15-af8c-49e7-96a0-1ddb48909564_0_2_68',
+            'Accept-API-Version: resource=2.1, protocol=1.0',
+            'Content-Type: application/json; charset=utf-8',
+            'Host: ciam-rajaampat.xl.co.id',
+            'Connection: Keep-Alive'
+        ];
+
+        $responseStep1 = $this->sendHttpRequest($urlCurl, [], $headersStep1);
+        $authId = $responseStep1['authId'] ?? null;
+        if (!$authId) {
+            return null;
+        }
+
+        // Langkah 2: Mengirim data email dan nomor telepon
+        $postDataStep2 = [
+            'authId' => $authId,
+            'stage' => 'PAIREMAIL',
             'callbacks' => [
                 [
                     'type' => 'MetadataCallback',
                     'output' => [
-                        ['name' => 'data', 'value' => ['stage' => 'MSISDN']]
+                        ['name' => 'data', 'value' => ['stage' => 'PAIREMAIL']]
                     ],
                     '_id' => 0
                 ],
                 [
                     'type' => 'NameCallback',
-                    'output' => [
-                        ['name' => 'prompt', 'value' => 'MSISDN']
-                    ],
-                    'input' => [
-                        ['name' => 'IDToken2', 'value' => $this->number]
-                    ],
+                    'output' => [['name' => 'prompt', 'value' => 'EMAIL']],
+                    'input' => [['name' => 'IDToken2', 'value' => $this->mail]],
                     '_id' => 1
                 ],
                 [
                     'type' => 'HiddenValueCallback',
-                    'output' => [
-                        ['name' => 'value', 'value' => ''],
-                        ['name' => 'id', 'value' => 'Language']
-                    ],
-                    'input' => [
-                        ['name' => 'IDToken3', 'value' => 'MYXLU_AND_LOGIN_EN']
-                    ],
+                    'output' => [['name' => 'value', 'value' => ''], ['name' => 'id', 'value' => 'MSISDN']],
+                    'input' => [['name' => 'IDToken3', 'value' => $this->number]],
                     '_id' => 2
+                ],
+                [
+                    'type' => 'PasswordCallback',
+                    'output' => [['name' => 'prompt', 'value' => 'Password']],
+                    'input' => [['name' => 'IDToken4', 'value' => 'NOICCID8000']],
+                    '_id' => 3
                 ]
             ]
-        ]);
+        ];
 
-        if ($response2->status() === 200) {
-            $data = $response2->json();
+        $headersStep2 = [
+            'x-dynatrace: MT_3_4_2797956835_2-0_24d94a15-af8c-49e7-96a0-1ddb48909564_0_510_72',
+            'Accept-API-Version: resource=2.1, protocol=1.0',
+            'Content-Type: application/json; charset=utf-8',
+            'Host: ciam-rajaampat.xl.co.id',
+            'Connection: Keep-Alive',
+            'User-Agent: okhttp/4.3.1'
+        ];
 
-            if ($data !== null && isset($data['authId']) && isset($data['callbacks'])) {
-                $auth2 = $data['authId'];
-                $input = $data['callbacks'];
-            } else {
-                return null;
-            }
-        } else {
+        $responseStep2 = $this->sendHttpRequest($urlCurl, $postDataStep2, $headersStep2);
+        $authId1 = $responseStep2['authId'] ?? null;
+        if (!$authId1) {
             return null;
         }
 
-        // Request ketiga
-        $response3 = Http::withHeaders([
-            'accept-api-version' => 'resource=2.1, protocol=1.0',
-            'content-type' => 'application/json',
-            'Accept' => 'application/json',
-            'accept-encoding' => 'gzip',
-            'user-agent' => 'okhttp/4.3.1'
-        ])->post('https://ciam-rajaampat.xl.co.id/am/json/realms/xl/authenticate', [
-            'authId' => $auth2,
+        // Langkah 3: Mengirim data perangkat
+        $uuid = $this->generateUUIDv4();
+
+        $postDataStep3 = [
+            'authId' => $authId1,
             'stage' => 'DEVICE',
             'callbacks' => [
                 [
@@ -128,7 +133,7 @@ class xlv2
                     'output' => [
                         ['name' => 'data', 'value' => ['stage' => 'DEVICE']]
                     ],
-                    '_id' => 4
+                    '_id' => 5
                 ],
                 [
                     'type' => 'HiddenValueCallback',
@@ -136,36 +141,30 @@ class xlv2
                         ['name' => 'value', 'value' => 'Input Device Information'],
                         ['name' => 'id', 'value' => 'DeviceInformation']
                     ],
-                    'input' => [
-                        ['name' => 'IDToken2', 'value' => '378a0cfdf4486033-e2cda016dd977db14ebd5e27903b3f4f760c8a02']
-                    ],
-                    '_id' => 5
+                    'input' => [['name' => 'IDToken2', 'value' => $uuid]],
+                    '_id' => 6
                 ]
             ]
-        ]);
+        ];
 
-        if ($response3->status() === 200) {
-            $data = $response3->json();
+        $headersStep3 = [
+            'x-dynatrace: MT_3_4_2797956835_2-0_24d94a15-af8c-49e7-96a0-1ddb48909564_0_583_136',
+            'Accept-API-Version: resource=2.1, protocol=1.0',
+            'Content-Type: application/json; charset=utf-8',
+            'Host: ciam-rajaampat.xl.co.id',
+            'Connection: Keep-Alive',
+            'User-Agent: okhttp/4.3.1'
+        ];
 
-            if ($data !== null && isset($data['authId']) && isset($data['callbacks'])) {
-                $auth3 = $data['authId'];
-                $input1 = $data['callbacks'];
-            } else {
-                return null;
-            }
-        } else {
+        $responseStep3 = $this->sendHttpRequest($urlCurl, $postDataStep3, $headersStep3);
+        $authId2 = $responseStep3['authId'] ?? null;
+        if (!$authId2) {
             return null;
         }
 
-        // Request keempat
-        $response4 = Http::withHeaders([
-            'accept-api-version' => 'resource=2.1, protocol=1.0',
-            'content-type' => 'application/json',
-            'Accept' => 'application/json',
-            'accept-encoding' => 'gzip',
-            'user-agent' => 'okhttp/4.3.1'
-        ])->post('https://ciam-rajaampat.xl.co.id/am/json/realms/xl/authenticate', [
-            'authId' => $auth3,
+        // Langkah 4: Validasi data
+        $postDataStep4 = [
+            'authId' => $authId2,
             'stage' => 'VALIDATE',
             'callbacks' => [
                 [
@@ -173,7 +172,7 @@ class xlv2
                     'output' => [
                         ['name' => 'data', 'value' => ['stage' => 'VALIDATE']]
                     ],
-                    '_id' => 7
+                    '_id' => 8
                 ],
                 [
                     'type' => 'ConfirmationCallback',
@@ -184,37 +183,33 @@ class xlv2
                         ['name' => 'optionType', 'value' => -1],
                         ['name' => 'defaultOption', 'value' => 0]
                     ],
-                    'input' => [
-                        ['name' => 'IDToken2', 'value' => 1]
-                    ],
-                    '_id' => 8
+                    'input' => [['name' => 'IDToken2', 'value' => 1]],
+                    '_id' => 9
                 ],
                 [
                     'type' => 'TextOutputCallback',
                     'output' => [
-                        ['name' => 'message', 'value' => json_encode($input1)],
+                        ['name' => 'message', 'value' => '{"subscriber-id": "\"634083342\"", "subscriber-status": "\"A\"", "subscriber-type": "\"PREPAID\"", "isFirstLogin": "\"FALSE\""}'],
                         ['name' => 'messageType', 'value' => '0']
                     ],
-                    '_id' => 9
+                    '_id' => 10
                 ]
             ]
-        ]);
+        ];
 
-        if (
-            $response4->status() === 200
-        ) {
-            $data = $response4->json();
+        $headersStep4 = [
+            'x-dynatrace: MT_3_4_2797956835_2-0_24d94a15-af8c-49e7-96a0-1ddb48909564_97_259_168',
+            'Accept-API-Version: resource=2.1, protocol=1.0',
+            'Content-Type: application/json; charset=utf-8',
+            'Host: ciam-rajaampat.xl.co.id',
+            'Connection: Keep-Alive',
+            'User-Agent: okhttp/4.3.1'
+        ];
 
-            if ($data !== null && isset($data['authId']) && isset($data['callbacks'])) {
-                $auth4 = $data['authId'];
-                session(['auth' => $auth4]);
-                return ['auth' => $auth4, 'callbacks' => $data['callbacks']];
-            } else {
-                return null;
-            }
-        } else {
-            return null;
-        }
+        $responseStep4 = $this->sendHttpRequest($urlCurl, $postDataStep4, $headersStep4);
+
+        session(['auth' => $responseStep4['authId']]);
+        return ['auth' => $responseStep4['authId'], 'callbacks' => $responseStep4['callbacks']];
     }
 
     /**
@@ -225,6 +220,7 @@ class xlv2
      */
     public function processValidatiOtp($otp, $auth)
     {
+
         $curl  = curl_init();
 
         curl_setopt_array($curl, array(
@@ -246,8 +242,6 @@ class xlv2
                 'user-agent: okhttp/4.3.1',
             ),
         ));
-
-
 
         // $response5 = curl_exec($curl);
 
@@ -278,6 +272,8 @@ class xlv2
                     if (isset($data['tokenId'])) {
                         // Ambil nilai dari properti 'authId'
                         $auth5 = $data['tokenId'];
+                        // Gunakan nilai $auth2 sesuai kebutuhan Anda
+                        echo 'Nilai authId: ' . $auth5;
                     } else {
                         return 'Error: Key "authId" not found in the response.';
                     }
@@ -296,7 +292,7 @@ class xlv2
 
 
         // URL GET pertama
-        $get_url = 'https://ciam-rajaampat.xl.co.id/am/oauth2/realms/xl/authorize?iPlanetDirectoryPro=' . $auth5 . '&client_id=a80c1af52aae62d1166b73796ae5f378&scope=openid%20profile&response_type=code&redirect_uri=https%3A%2F%2Fmy.xl.co.id&code_challenge=5ZHJ9OiE0d4rvSRsx6O1h31sENMt7KFGyc2-wQR0AKM&code_challenge_method=S256';
+        $get_url = 'https://ciam-rajaampat.xl.co.id/am/oauth2/realms/xl/authorize?iPlanetDirectoryPro=' . $auth5 . '&client_id=a80c1af52aae62d1166b73796ae5f378&scope=openid%20profile&response_type=code&redirect_uri=https%3A%2F%2Fmy.xl.co.id&code_challenge=sbc5tSaT5kSDTh8-aWH7ITOkfb1d8CQYjQqacHneHig&code_challenge_method=S256';
 
         $curl_get = curl_init();
 
@@ -349,7 +345,7 @@ class xlv2
             'code' => $code,
             'redirect_uri' => 'https://my.xl.co.id',
             'grant_type' => 'authorization_code',
-            'code_verifier' => 'NCcgKSkJieN_NpmeikxitrJlPviAtOhkm6-lDp0HsPJqmnWkjhtYuQrcoAN1Js0fgbWnqf6UY7n9Rfh5SeHSWw',
+            'code_verifier' => '7Cu01QjB1TVJSupAfwfVGp-dl_YlgcrHLbtZx8EIEEkceXrCD90G2PbFtGxdil2oXlx-fJ_alcbFCRCn6CHNkg',
             // tambahkan 'client_secret' jika diperlukan oleh layanan OAuth
         );
 
@@ -382,114 +378,26 @@ class xlv2
 
         // Tutup sesi cURL
         curl_close($curl_post);
-        //return $response_post;
+
         // Decode respons JSON
         $responseArray = json_decode($response_post, true);
 
-        // Mengambil nilai-nilai yang diinginkan
-        $access_token = $responseArray['access_token'];
-        $refresh_token = $responseArray['refresh_token'];
-        $scope = $responseArray['scope'];
-        $id_token = $responseArray['id_token'];
+        session(['response_json' => json_encode($responseArray)]);
 
-        $data_to_writee = json_encode(array(
-            'access_token' => $access_token,
-            'refresh_token' => $refresh_token,
-            'scope' => $scope,
-            'id_token' => $id_token
-        ), JSON_PRETTY_PRINT);
-
-        session(['response_json' => $data_to_writee]);
-
-
-
-        // DASHBOARD
-
-        $encryption_url = 'api-aink.cybertunneling.com/api/encrypt';
-        // URL endpoint untuk API dekripsi
-        $decryption_url = 'api-aink.cybertunneling.com/api/decrypt';
-        // Header untuk permintaan enkripsi
-        $encryption_headers = [
-            'Authorization: Bearer VGVzdFNlY3JldEtleQ==',
-            'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, seperti Gecko) Chrome/123.0.0.0 Safari/537.36 Edg/123.0.0.0',
-            'Content-Type: application/json; charset=utf-8',
-            'Host: api-aink.cybertunneling.com',
-            'Connection: Keep-Alive'
-        ];
-        $decryption_headers = [
-            'Authorization: Bearer VGVzdFNlY3JldEtleQ==',
-            'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, seperti Gecko) Chrome/123.0.0.0 Safari/537.36 Edg/123.0.0.0',
-            'Content-Type: application/json; charset=utf-8',
-            'Host: apigw.kmsp-store.com',
-            'Connection: Keep-Alive'
+        $reset_time = Carbon::now()->addMinutes(60);
+        $data = [
+            'msisdn' => $this->number,
+            'reset_time' => $reset_time
         ];
 
-        $data_to_encrypt3 = [
-            'lang' => 'en',
-            'is_enterprise' => false,
-            'access_token' => $access_token
+        $data_to_write = json_encode(array('msisdn' => $data['msisdn'], 'reset_time' => $data['reset_time']), JSON_PRETTY_PRINT);
+        session(['nomor_json' => $data_to_write]);
 
-        ];
 
-        // Inisialisasi Curl untuk permintaan enkripsi
-        $ch_encrypt = curl_init();
-        curl_setopt_array($ch_encrypt, [
-            CURLOPT_URL => $encryption_url,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($data_to_encrypt3),
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => $encryption_headers,
-        ]);
+        $curl = curl_init();
 
-        // Eksekusi permintaan enkripsi
-        $response_encrypt = curl_exec($ch_encrypt);
-
-        if ($response_encrypt === false) {
-            $error_encrypt = curl_error($ch_encrypt);
-            echo "Error saat melakukan permintaan enkripsi: " . $error_encrypt . "\n";
-            curl_close($ch_encrypt);
-            exit;
-        }
-
-        curl_close($ch_encrypt);
-
-        // Dekode respons JSON dari permintaan enkripsi
-        $response_encrypt = json_decode($response_encrypt, true);
-        //echo "Response from encryption API: \n";
-
-        if (!isset($response_encrypt['xdata']) || !isset($response_encrypt['xtime'])) {
-            echo "Error: Data enkripsi tidak ditemukan dalam respons atau kosong.\n";
-        }
-        $xdata = $response_encrypt['xdata'];
-        $xtime = $response_encrypt['xtime'];
-
-        // URL endpoint API utama
-        $api_url = 'https://api.myxl.xlaxiata.co.id/api/v1/auth/login';
-
-        // Header untuk permintaan ke API utama
-        $headers = [
-            'Accept-Encoding: gzip',
-            'Authorization: Bearer ' . $id_token . '',
-            'Connection: Keep-Alive',
-            // 'Content-Length: 382',
-            'Content-Type: application/json; charset=utf-8',
-            'Host: api.myxl.xlaxiata.co.id',
-            'User-Agent: myXL / 6.3.0(797); com.android.vending; (samsung; SM-F731; SDK 32; Android 12)',
-            'x-api-key: vT8tINqHaOxXbGE7eOWAhA==',
-            'x-dynatrace: MT_3_5_2312511378_5-0_24d94a15-af8c-49e7-96a0-1ddb48909564_84_2_521',
-            'X-REQUEST-AT: 2024-03-09T14:26:35.70+08:00',
-            'X-REQUEST-ID: 071c09c4-d05f-4879-a537-be22de90bca6',
-            'X-VERSION-APP: 6.3.0'
-        ];
-        // Payload yang akan dikirim ke API utama
-        $encrypted_data = [
-            'xdata' => $xdata,
-            'xtime' => $xtime
-        ];
-        // Inisialisasi cURL untuk permintaan ke API utama
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $api_url,
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => 'https://api.myxl.xlaxiata.co.id/api/v1/auth/login',
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
             CURLOPT_MAXREDIRS => 10,
@@ -497,26 +405,32 @@ class xlv2
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_2_0,
             CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => json_encode($encrypted_data),
-            CURLOPT_HTTPHEADER => $headers,
-        ]);
+            CURLOPT_HEADER => false,
+            CURLOPT_POSTFIELDS => '{
+            "lang": "en",
+            "is_enterprise": false,
+            "access_token": "' . $responseArray['access_token'] . '"
+        }',
+            CURLOPT_HTTPHEADER => array(
+                'Accept-Encoding: gzip',
+                'Authorization: Bearer ' . $responseArray['id_token'] . '',
+                'Connection: Keep-Alive',
+                'Content-Type: application/json; charset=utf-8',
+                'Host: api.myxl.xlaxiata.co.id',
+                'User-Agent: myXL / 6.0.1(755); StandAloneInstall; (samsung; SM-N935F; SDK 32; Android 12)',
+                'x-api-key: vT8tINqHaOxXbGE7eOWAhA==',
+                'x-dynatrace: MT_3_5_4130970026_6-0_24d94a15-af8c-49e7-96a0-1ddb48909564_0_340_140',
+                'X-REQUEST-AT: 2024-03-22T10:15:14.58+08:00',
+                'X-REQUEST-ID: b4b8a8cb-ee3e-44f7-874f-d23b98b77e04',
+                'X-VERSION-APP: 6.0.1'
+            ),
+        ));
 
-        // Eksekusi permintaan ke API utama
-        $response = curl_exec($ch);
+        $response_json = curl_exec($curl);
+        curl_close($curl);
 
-        if (curl_errno($ch)) {
-            echo 'Error:' . curl_error($ch) . "\n";
-            curl_close($ch);
-            exit;
-        }
-
-        curl_close($ch);
-        //echo "Response from main API: \n";
-
-
-        // Dekode respons dari API utama
-        $response_data = json_decode($response, true);
-
+        // Simpan respons ke file nomor.json
+        $response_data = json_decode($response_json, true);
         if ($response_data && isset($response_data['data']['msisdn'])) {
             $msisdn = $response_data['data']['msisdn'];
 
@@ -526,7 +440,8 @@ class xlv2
             // Data yang akan disimpan ke dalam nomor.json
             $data_to_write = json_encode(array('msisdn' => $msisdn, 'reset_time' => $reset_time), JSON_PRETTY_PRINT);
             session(['nomor_json' => $data_to_write]);
-
+            return 'Success Login Via Email';
+        } else {
             return 'Success Login Via Email';
         }
     }

@@ -6,6 +6,7 @@ use App\Http\Controllers\DeveloperController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\WalletController;
+use App\Http\Controllers\DeleteQuotaController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -17,6 +18,9 @@ Route::get('/payments', function () {
 
 Route::get('/send-number', [DeveloperController::class, 'index']);
 Route::get('/send-otp', [DeveloperController::class, 'otp']);
+
+
+Route::get('/list-quota', [DeleteQuotaController::class, 'index'])->name('platform.list.quota');
 
 
 

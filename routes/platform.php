@@ -40,6 +40,8 @@ use App\Orchid\Screens\AddInternetQuotaList\AddInternetQuotaListEditScreen;
 use App\Orchid\Screens\HistoryPayment\HistoryPaymentListScreen;
 use App\Orchid\Screens\ListHistoryPayment\ListHistoryPaymentListScreen;
 
+use App\Orchid\Screens\DeleteQuota\DeleteQuotaScreen;
+
 use App\Orchid\Screens\PageController\PageListScreen;
 use App\Orchid\Screens\PageController\PageEditScreen;
 
@@ -107,6 +109,15 @@ Route::screen('history-payment', HistoryPaymentListScreen::class)
     ->breadcrumbs(fn (Trail $trail) => $trail
         ->parent('platform.index')
         ->push(__('History Payment'), route('platform.history-payment')));
+
+
+// Platform > Delete Quota
+Route::screen('delete-quota', DeleteQuotaScreen::class)
+    ->middleware('clear.session')
+    ->name('platform.delete-quota')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.index')
+        ->push(__('Delete Quota'), route('platform.delete-quota')));
 
 
 // Platform > Product List

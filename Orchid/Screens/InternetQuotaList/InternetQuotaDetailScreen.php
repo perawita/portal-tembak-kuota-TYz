@@ -53,7 +53,7 @@ class InternetQuotaDetailScreen extends Screen
         $expiry_time = Carbon::createFromTimestamp($decoded_data['expires_in'] ?? 0);
         $expiry_diff_minutes = $now->diffInMinutes($expiry_time);
         $remainingMinutes = session('response_json') ? $decoded_data['expires_in'] / 60 : 0;
-
+        
         return [
             'name' => $this->detail_quota ? $this->detail_quota->name : '',
             'id' => $this->detail_quota ? Crypt::decryptString(request()->route()->parameter('encryptedId')) : 0,
