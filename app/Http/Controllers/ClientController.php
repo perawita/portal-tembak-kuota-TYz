@@ -22,18 +22,24 @@ class ClientController
         ]);
     }
     
-    public function api_input_number(Request $request)
+    public function api_input_number($nomor)
     {
-        $validati = $request->only('nomor');
-        $client_xl = new client_xlv2($validati['nomor']);
+        $client_xl = new client_xlv2($nomor);
         $authenticate = $client_xl->authenticate();
 
-        $date = Date('d-m-y');
-        return view('welcome', [
+        return response()->json([
             'body' => $authenticate,
-            'massage' => "$date [info] > nomor anda: ". $authenticate['number'] . "\n" .
-                         "$date [info] > filename: ". $authenticate['filename'] . "\n",
-        ]);
+        ], 200);
+    }
+    
+    public function api_input_otp($nomor, $otp, $file)
+    {
+        $client_xl = new client_xlv2($nomor);
+        $otp = $client_xl->processValidatiOtp($otp, $file, $nomor);
+
+        return response()->json([
+            'body' => $otp,
+        ], 200);
     }
     
     public function input_otp(Request $request)

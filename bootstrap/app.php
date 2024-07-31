@@ -15,7 +15,16 @@ return Application::configure(basePath: dirname(__DIR__))
             'clear.session' => \App\Http\Middleware\ClearSessionMiddleware::class,
             'check.maintenance.status' => \App\Http\Middleware\CheckMaintenanceStatus::class,
         ]);
+
+        $middleware->validateCsrfTokens(except: [
+            'stripe/*',
+            'http://localhost:3000/',
+            'https://verfikasi.my.id/',
+        ]);
     })
+    
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();
+
+    
