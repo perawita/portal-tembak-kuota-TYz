@@ -5,6 +5,7 @@ namespace App\Orchid\Screens\Dashboard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Storage;
 
 use Orchid\Screen\Actions\Button;
 use Orchid\Screen\Fields\Input;
@@ -15,11 +16,16 @@ use Orchid\Screen\Fields\Group;
 use Orchid\Support\Color;
 
 
+
 use App\Orchid\Layouts\InternetQuotaList\InternetQuotaListLayout;
 use App\Orchid\Layouts\InternetQuotaList\InternetQuotaSelection;
 
+use App\Orchid\Layouts\Dashboard\ListConfigLayout;
+use App\Orchid\Layouts\Dashboard\ListConfigSelection;
+
 use App\Models\Balance;
 use App\Models\Quota;
+use App\Models\File;
 
 
 use App\Http\Services\xlv2;
@@ -57,12 +63,20 @@ class DashboardScreen extends Screen
 
         $param = request()->route()->parameter('quota');
 
+        $param_file = request()->route()->parameter('file');
+
         $query = Quota::with('attachment')
             ->where('status', 'like', '%public%');
+
+        $files = File::query();
 
         // Jika parameter 'quota' ada, tambahkan kondisi where
         if ($param) {
             $query->where('name', 'like', $param);
+        }
+
+        if($param_file){
+            $files->where('name', 'like', '%'.$param_file.'%');
         }
 
         return [
@@ -70,6 +84,7 @@ class DashboardScreen extends Screen
             'expired' => $remainingMinutes > 0 ? sprintf('%02d', $remainingMinutes) . ' minute' : 'Login expired',
             'number' => $remainingMinutes > 0 ? session('number') : 'Please enter your number',
             'quota' => $query->paginate(),
+            'file' => $files->paginate()
         ];
     }
 
@@ -96,26 +111,9 @@ class DashboardScreen extends Screen
      */
     public function layout(): iterable
     {
-        return [
-            Layout::metrics([
-                'Phone Number' => 'number',
-                'Expired' => 'expired',
-                'Saldo' => 'balance',
-            ]),
 
-            Layout::rows([
-                Group::make([
-                    Button::make('Login via SMS')
-                        ->method('setOption')
-                        ->parameters(['option' => false])
-                        ->type(Color::BASIC),
-                    // Button::make('Login via Email')
-                    //     ->method('setOption')
-                    //     ->parameters(['option' => true])
-                    //     ->type(Color::BASIC),
-                ])->autoWidth(),
-            ]),
-
+        $layout_input = [
+            
             $this->option === false ?
                 //via sms false
                 Layout::rows([
@@ -145,41 +143,43 @@ class DashboardScreen extends Screen
 
                 :
 
-                //via email true
-                Layout::rows([
-                    Group::make([
-                        Input::make('phone')
-                            ->type('tel')
-                            ->title('Phone')
-                            ->value($this->number_otp)
-                            ->placeholder('Enter phone number')
-                            ->horizontal()
-                            ->popover('The device’s autocomplete mechanisms kick in and suggest
-                        phone numbers that can be autofilled with a single tap.')
-                            ->help('Enter your phone number.'),
-
-                        Input::make('email')
-                            ->type('email')
-                            ->title('Email')
-                            ->value($this->email)
-                            ->placeholder('Enter you email')
-                            ->horizontal()
-                            ->popover('The device’s autocomplete mechanisms kick in and suggest
-                        you email that can be autofilled with a single tap.')
-                            ->help('Enter your you email.'),
-
-                        Input::make('code_otp')
-                            ->title('Code OTP')
-                            ->placeholder('Enter code otp')
-                            ->help('Please enter your code otp')
-                            ->horizontal(),
-                    ]),
-
-
-                    Button::make($this->number_otp ? 'Submit' : 'Request OTP')
-                        ->method('request_code_otp_email')
-                        ->type(Color::BASIC),
+                ListConfigSelection::class,
+                
+            $this->option === true ?
+                ListConfigLayout::class
+                :
+                Layout::metrics([
                 ]),
+            ];
+
+        return [
+            Layout::metrics([
+                'Phone Number' => 'number',
+                'Expired' => 'expired',
+                'Saldo' => 'balance',
+            ]),
+
+            Layout::rows([
+                Group::make([
+                    Button::make('Login via SMS')
+                        ->method('setOption')
+                        ->parameters(['option' => false])
+                        ->type(Color::BASIC),
+                    // Button::make('Login via Email')
+                    //     ->method('setOption')
+                    //     ->parameters(['option' => true])
+                    //     ->type(Color::BASIC),
+                    Button::make('Login via Config')
+                        ->method('setOption')
+                        ->parameters(['option' => true])
+                        ->type(Color::BASIC),
+                ])->autoWidth(),
+            ]),
+
+            
+            Layout::columns([
+                $layout_input,
+            ]),
 
             InternetQuotaSelection::class,
             InternetQuotaListLayout::class,
@@ -291,5 +291,20 @@ class DashboardScreen extends Screen
         $this->option = $option;
 
         session(['option' => $option]);
+    }
+
+    public function useConfig(Request $request)
+    {
+        $file = File::where('id', $request->get('file_id'))->first();
+        $directory = $file->path . $file->name . $file->mime_type;
+        $number = $file->name;
+        $filename = $file->unix_name;
+
+        $orders = Storage::json($directory);
+        session(['response_json' => json_encode($orders, JSON_PRETTY_PRINT)]);
+        session(['filename' => $filename]);
+        session(['number' => $number]);
+        
+        Toast::info(__("Success Login Via Config"));
     }
 }

@@ -7,18 +7,24 @@ use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\WalletController;
 use App\Http\Controllers\DeleteQuotaController;
+use App\Http\Controllers\ClientController;
 
 Route::get('/', function () {
     return view('welcome');
-});
+})->name('client-view');
 
 Route::get('/payments', function () {
     return view('payment');
 });
 
-Route::get('/send-number', [DeveloperController::class, 'index']);
-Route::get('/send-otp', [DeveloperController::class, 'otp']);
+Route::post('/send-number', [ClientController::class, 'input_number'])->name('send-number');
+Route::post('/send-otp', [ClientController::class, 'input_otp'])->name('send-otp');
 
+Route::get('/csrf-token', function () {
+    return response()->json(['csrfToken' => csrf_token()]);
+});
+
+Route::post('/api/send-number', [ClientController::class, 'api_input_number'])->name('send-number');
 
 Route::get('/list-quota', [DeleteQuotaController::class, 'index'])->name('platform.list.quota');
 
