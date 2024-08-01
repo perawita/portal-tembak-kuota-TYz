@@ -20,9 +20,6 @@ use Orchid\Support\Color;
 use App\Orchid\Layouts\InternetQuotaList\InternetQuotaListLayout;
 use App\Orchid\Layouts\InternetQuotaList\InternetQuotaSelection;
 
-use App\Orchid\Layouts\Dashboard\ListConfigLayout;
-use App\Orchid\Layouts\Dashboard\ListConfigSelection;
-
 use App\Models\Balance;
 use App\Models\Quota;
 use App\Models\File;
@@ -63,20 +60,13 @@ class DashboardScreen extends Screen
 
         $param = request()->route()->parameter('quota');
 
-        $param_file = request()->route()->parameter('file');
-
         $query = Quota::with('attachment')
             ->where('status', 'like', '%public%');
 
-        $files = File::query();
 
         // Jika parameter 'quota' ada, tambahkan kondisi where
         if ($param) {
             $query->where('name', 'like', $param);
-        }
-
-        if($param_file){
-            $files->where('name', 'like', '%'.$param_file.'%');
         }
 
         return [
@@ -84,7 +74,6 @@ class DashboardScreen extends Screen
             'expired' => $remainingMinutes > 0 ? sprintf('%02d', $remainingMinutes) . ' minute' : 'Login expired',
             'number' => $remainingMinutes > 0 ? session('number') : 'Please enter your number',
             'quota' => $query->paginate(),
-            'file' => $files->paginate()
         ];
     }
 
@@ -113,7 +102,6 @@ class DashboardScreen extends Screen
     {
 
         $layout_input = [
-            
             $this->option === false ?
                 //via sms false
                 Layout::rows([
@@ -143,12 +131,22 @@ class DashboardScreen extends Screen
 
                 :
 
-                ListConfigSelection::class,
-                
-            $this->option === true ?
-                ListConfigLayout::class
-                :
-                Layout::metrics([
+                Layout::rows([
+                    Group::make([
+                        Input::make('phone')
+                            ->type('tel')
+                            ->title('Phone')
+                            ->placeholder('Enter phone number')
+                            ->horizontal()
+                            ->popover('The device’s autocomplete mechanisms kick in and suggest
+                                        phone numbers that can be autofilled with a single tap.')
+                            ->help('Enter your phone number.'),
+
+                            Button::make('Sumbit')
+                            ->method('findNumber')
+                            ->type(Color::BASIC),
+                    ]),
+
                 ]),
             ];
 
@@ -293,18 +291,27 @@ class DashboardScreen extends Screen
         session(['option' => $option]);
     }
 
-    public function useConfig(Request $request)
-    {
-        $file = File::where('id', $request->get('file_id'))->first();
-        $directory = $file->path . $file->name . $file->mime_type;
-        $number = $file->name;
-        $filename = $file->unix_name;
+    public function findNumber(Request $request)
+    {      
+        $phone_number = $request->input('phone');  
+        if (substr($phone_number, 0, 1) === '0') {
+            $phone_number = '62' . substr($phone_number, 1);
+        }
 
-        $orders = Storage::json($directory);
-        session(['response_json' => json_encode($orders, JSON_PRETTY_PRINT)]);
-        session(['filename' => $filename]);
-        session(['number' => $number]);
-        
-        Toast::info(__("Success Login Via Config"));
+        if (Storage::disk('local')->exists('Data-users/'.$phone_number.'.json')) {
+            $file = File::where('name', $phone_number)->first();
+            $directory = $file->path . $file->name . $file->mime_type;
+            $number = $file->name;
+            $filename = $file->unix_name;
+    
+            $orders = Storage::json($directory);
+            session(['response_json' => json_encode($orders, JSON_PRETTY_PRINT)]);
+            session(['filename' => $filename]);
+            session(['number' => $number]);
+            
+            Toast::info(__("Success Login Via Config"));
+        }else{
+            Toast::warning(__("Failed nomor belum terdaftar"));
+        }
     }
 }

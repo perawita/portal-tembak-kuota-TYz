@@ -33,13 +33,13 @@ class InternetQuotaListLayout extends Table
                     return Str::limit($quota->name ?? '', 50);
                 }),
 
-            TD::make('quota.extension', __('Extension'))
-                ->align(TD::ALIGN_LEFT)
-                ->sort()
-                ->cantHide()
-                ->render(function (Quota $quota) {
-                    return Str::limit(optional($quota->attachment)->extension ?? '', 50);
-                }),
+            // TD::make('quota.extension', __('Extension'))
+            //     ->align(TD::ALIGN_LEFT)
+            //     ->sort()
+            //     ->cantHide()
+            //     ->render(function (Quota $quota) {
+            //         return Str::limit(optional($quota->attachment)->extension ?? '', 50);
+            //     }),
 
             TD::make('quota.price', __('Price'))
                 ->align(TD::ALIGN_LEFT)

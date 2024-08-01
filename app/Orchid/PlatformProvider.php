@@ -134,6 +134,12 @@ class PlatformProvider extends OrchidServiceProvider
                 ->active('*/user-balance*')
                 ->title(__('Settings')),
 
+            Menu::make(__('User Data'))
+                ->icon('bs.database')
+                ->route('platform.user-data')
+                ->permission('platform.systems.users')
+                ->active('*/user-data*'),
+
             Menu::make(__('Products List'))
                 ->icon('bs.card-text')
                 ->route('platform.product-list')

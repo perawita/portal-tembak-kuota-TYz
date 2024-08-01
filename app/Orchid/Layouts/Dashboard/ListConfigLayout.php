@@ -32,20 +32,14 @@ class ListConfigLayout extends Table
                     return Str::limit($file->name ?? '', 50);
                 }),
 
-            TD::make('file.mime_type', __('Extension'))
-                ->align(TD::ALIGN_LEFT)
-                ->cantHide()
-                ->render(function (File $file) {
-                    return Str::limit($file->mime_type ?? '', 50);
-                }),
-
-            TD::make(__('Actions'))
+            // use
+            TD::make(__(''))
                 ->align(TD::ALIGN_RIGHT)
                 ->width('100px')
                 ->render(
                     fn (File $file) =>
                     Button::make(__('Use'))
-                        ->type(Color::WARNING)
+                        ->type(Color::SUCCESS)
                         ->confirm(__('Are you sure to use '. $file->name.$file->mime_type . ' this file for login?'))
                         ->icon('bs.folder')
                         ->method('useConfig')
@@ -53,6 +47,22 @@ class ListConfigLayout extends Table
                             'file_id' => $file->id,
                         ]),
                 ),
+                
+                // delete
+                TD::make(__(''))
+                    ->align(TD::ALIGN_RIGHT)
+                    ->width('100px')
+                    ->render(
+                        fn (File $file) =>
+                        Button::make(__('Delete'))
+                            ->type(Color::ERROR)
+                            ->confirm(__('Are you sure to delete '. $file->name.$file->mime_type))
+                            ->icon('bs.trash')
+                            ->method('delete')
+                            ->parameters([
+                                'file_id' => $file->id,
+                            ]),
+                    ),
         ];
     }
 }

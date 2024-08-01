@@ -40,6 +40,8 @@ use App\Orchid\Screens\AddInternetQuotaList\AddInternetQuotaListEditScreen;
 use App\Orchid\Screens\HistoryPayment\HistoryPaymentListScreen;
 use App\Orchid\Screens\ListHistoryPayment\ListHistoryPaymentListScreen;
 
+use App\Orchid\Screens\ListFileUsers\ListFileUserScreen;
+
 use App\Orchid\Screens\DeleteQuota\DeleteQuotaScreen;
 
 use App\Orchid\Screens\PageController\PageListScreen;
@@ -79,7 +81,7 @@ Route::screen('top-up', TopUpScreen::class)
     ->middleware('clear.session')
     ->middleware('check.maintenance.status')
     ->name('platform.top-up')
-    ->breadcrumbs(fn (Trail $trail) => $trail
+    ->breadcrumbs(fn(Trail $trail) => $trail
         ->parent('platform.index')
         ->push(__('Top Up'), route('platform.top-up')));
 
@@ -88,7 +90,7 @@ Route::screen('internet-quota-list', InternetQuotaListScreen::class)
     ->middleware('clear.session')
     ->middleware('check.maintenance.status')
     ->name('platform.internet-quota-list')
-    ->breadcrumbs(fn (Trail $trail) => $trail
+    ->breadcrumbs(fn(Trail $trail) => $trail
         ->parent('platform.index')
         ->push(__('Internet Quota List'), route('platform.internet-quota-list')));
 
@@ -97,7 +99,7 @@ Route::screen('internet-quota-list', InternetQuotaListScreen::class)
 Route::screen('internet-quota-list/{encryptedId}/buy', InternetQuotaDetailScreen::class)
     ->name('platform.internet-quota-list.buy')
     ->middleware('check.maintenance.status')
-    ->breadcrumbs(fn (Trail $trail, $encryptedId) => $trail
+    ->breadcrumbs(fn(Trail $trail, $encryptedId) => $trail
         ->parent('platform.internet-quota-list')
         ->push(__('Buy Product'), route('platform.internet-quota-list.buy', $encryptedId)));
 
@@ -106,7 +108,7 @@ Route::screen('internet-quota-list/{encryptedId}/buy', InternetQuotaDetailScreen
 Route::screen('history-payment', HistoryPaymentListScreen::class)
     ->middleware('clear.session')
     ->name('platform.history-payment')
-    ->breadcrumbs(fn (Trail $trail) => $trail
+    ->breadcrumbs(fn(Trail $trail) => $trail
         ->parent('platform.index')
         ->push(__('History Payment'), route('platform.history-payment')));
 
@@ -115,7 +117,7 @@ Route::screen('history-payment', HistoryPaymentListScreen::class)
 Route::screen('delete-quota', DeleteQuotaScreen::class)
     ->middleware('clear.session')
     ->name('platform.delete-quota')
-    ->breadcrumbs(fn (Trail $trail) => $trail
+    ->breadcrumbs(fn(Trail $trail) => $trail
         ->parent('platform.index')
         ->push(__('Delete Quota'), route('platform.delete-quota')));
 
@@ -124,7 +126,7 @@ Route::screen('delete-quota', DeleteQuotaScreen::class)
 Route::screen('product-list', ProductListScreen::class)
     ->middleware('clear.session')
     ->name('platform.product-list')
-    ->breadcrumbs(fn (Trail $trail) => $trail
+    ->breadcrumbs(fn(Trail $trail) => $trail
         ->parent('platform.index')
         ->push(__('Product List'), route('platform.product-list')));
 
@@ -132,7 +134,7 @@ Route::screen('product-list', ProductListScreen::class)
 // Platform > Product List > Edit
 Route::screen('product-list/{id}/edit', ProductListEditScreen::class)
     ->name('platform.product-list.edit')
-    ->breadcrumbs(fn (Trail $trail, $id) => $trail
+    ->breadcrumbs(fn(Trail $trail, $id) => $trail
         ->parent('platform.product-list')
         ->push(__('Edit Product List'), route('platform.product-list.edit', $id)));
 
@@ -140,7 +142,7 @@ Route::screen('product-list/{id}/edit', ProductListEditScreen::class)
 // Platform > Add Internet Quota List
 Route::screen('add-internet-quota-list', AddInternetQuotaListScreen::class)
     ->name('platform.add-internet-quota-list')
-    ->breadcrumbs(fn (Trail $trail) => $trail
+    ->breadcrumbs(fn(Trail $trail) => $trail
         ->parent('platform.index')
         ->push(__('Add Quota List'), route('platform.add-internet-quota-list')));
 
@@ -148,7 +150,7 @@ Route::screen('add-internet-quota-list', AddInternetQuotaListScreen::class)
 // Platform > Add Internet Quota List > Edit
 Route::screen('add-internet-quota-list/{id}/edit', AddInternetQuotaListEditScreen::class)
     ->name('platform.add-internet-quota-list.edit')
-    ->breadcrumbs(fn (Trail $trail, $id) => $trail
+    ->breadcrumbs(fn(Trail $trail, $id) => $trail
         ->parent('platform.add-internet-quota-list')
         ->push(__('Edit'), route('platform.add-internet-quota-list.edit', $id)));
 
@@ -157,7 +159,7 @@ Route::screen('add-internet-quota-list/{id}/edit', AddInternetQuotaListEditScree
 Route::screen('user-balance', UserBalanceScreen::class)
     ->middleware('clear.session')
     ->name('platform.user-balance')
-    ->breadcrumbs(fn (Trail $trail) => $trail
+    ->breadcrumbs(fn(Trail $trail) => $trail
         ->parent('platform.index')
         ->push(__('User Balance'), route('platform.user-balance')));
 
@@ -165,15 +167,23 @@ Route::screen('user-balance', UserBalanceScreen::class)
 // Platform > User Balance > Create New Balance
 Route::screen('user-balance/top-up', UserBalanceEditScreen::class)
     ->name('platform.user-balance.create')
-    ->breadcrumbs(fn (Trail $trail) => $trail
+    ->breadcrumbs(fn(Trail $trail) => $trail
         ->parent('platform.user-balance')
         ->push(__('Top up user balance'), route('platform.user-balance.create')));
+
+// Platform > User Data
+Route::screen('user-data', ListFileUserScreen::class)
+    ->middleware('clear.session')
+    ->name('platform.user-data')
+    ->breadcrumbs(fn(Trail $trail) => $trail
+        ->parent('platform.index')
+        ->push(__('User Data'), route('platform.user-data')));
 
 
 // Platform > Pages Controllers
 Route::screen('page-controller', PageListScreen::class)
     ->name('platform.page-controller')
-    ->breadcrumbs(fn (Trail $trail) => $trail
+    ->breadcrumbs(fn(Trail $trail) => $trail
         ->parent('platform.index')
         ->push(__('Pages Controllers'), route('platform.page-controller')));
 
@@ -181,7 +191,7 @@ Route::screen('page-controller', PageListScreen::class)
 // Platform > Pages Controllers > Add New Page
 Route::screen('page-controller/create-page', PageEditScreen::class)
     ->name('platform.page-controller.create-page')
-    ->breadcrumbs(fn (Trail $trail) => $trail
+    ->breadcrumbs(fn(Trail $trail) => $trail
         ->parent('platform.page-controller')
         ->push(__('Add New Pages'), route('platform.page-controller.create-page')));
 
@@ -189,7 +199,7 @@ Route::screen('page-controller/create-page', PageEditScreen::class)
 // Platform > Pages Controllers > Edit New Page
 Route::screen('page-controller/{id}/edit', PageEditScreen::class)
     ->name('platform.page-controller.edit-page')
-    ->breadcrumbs(fn (Trail $trail, $id) => $trail
+    ->breadcrumbs(fn(Trail $trail, $id) => $trail
         ->parent('platform.page-controller')
         ->push(__('Edit Pages'), route('platform.page-controller.edit-page', $id)));
 
@@ -198,7 +208,7 @@ Route::screen('page-controller/{id}/edit', PageEditScreen::class)
 Route::screen('admin-history-payment', ListHistoryPaymentListScreen::class)
     ->middleware('clear.session')
     ->name('platform.admin-history-payment')
-    ->breadcrumbs(fn (Trail $trail) => $trail
+    ->breadcrumbs(fn(Trail $trail) => $trail
         ->parent('platform.index')
         ->push(__('History Payment'), route('platform.admin-history-payment')));
 
@@ -207,21 +217,21 @@ Route::screen('admin-history-payment', ListHistoryPaymentListScreen::class)
 Route::screen('profile', UserProfileScreen::class)
     ->middleware('clear.session')
     ->name('platform.profile')
-    ->breadcrumbs(fn (Trail $trail) => $trail
+    ->breadcrumbs(fn(Trail $trail) => $trail
         ->parent('platform.index')
         ->push(__('Profile'), route('platform.profile')));
 
 // Platform > System > Users > User
 Route::screen('users/{user}/edit', UserEditScreen::class)
     ->name('platform.systems.users.edit')
-    ->breadcrumbs(fn (Trail $trail, $user) => $trail
+    ->breadcrumbs(fn(Trail $trail, $user) => $trail
         ->parent('platform.systems.users')
         ->push($user->name, route('platform.systems.users.edit', $user)));
 
 // Platform > System > Users > Create
 Route::screen('users/create', UserEditScreen::class)
     ->name('platform.systems.users.create')
-    ->breadcrumbs(fn (Trail $trail) => $trail
+    ->breadcrumbs(fn(Trail $trail) => $trail
         ->parent('platform.systems.users')
         ->push(__('Create'), route('platform.systems.users.create')));
 
@@ -229,21 +239,21 @@ Route::screen('users/create', UserEditScreen::class)
 Route::screen('users', UserListScreen::class)
     ->middleware('clear.session')
     ->name('platform.systems.users')
-    ->breadcrumbs(fn (Trail $trail) => $trail
+    ->breadcrumbs(fn(Trail $trail) => $trail
         ->parent('platform.index')
         ->push(__('Users'), route('platform.systems.users')));
 
 // Platform > System > Roles > Role
 Route::screen('roles/{role}/edit', RoleEditScreen::class)
     ->name('platform.systems.roles.edit')
-    ->breadcrumbs(fn (Trail $trail, $role) => $trail
+    ->breadcrumbs(fn(Trail $trail, $role) => $trail
         ->parent('platform.systems.roles')
         ->push($role->name, route('platform.systems.roles.edit', $role)));
 
 // Platform > System > Roles > Create
 Route::screen('roles/create', RoleEditScreen::class)
     ->name('platform.systems.roles.create')
-    ->breadcrumbs(fn (Trail $trail) => $trail
+    ->breadcrumbs(fn(Trail $trail) => $trail
         ->parent('platform.systems.roles')
         ->push(__('Create'), route('platform.systems.roles.create')));
 
@@ -251,7 +261,7 @@ Route::screen('roles/create', RoleEditScreen::class)
 Route::screen('roles', RoleListScreen::class)
     ->middleware('clear.session')
     ->name('platform.systems.roles')
-    ->breadcrumbs(fn (Trail $trail) => $trail
+    ->breadcrumbs(fn(Trail $trail) => $trail
         ->parent('platform.index')
         ->push(__('Roles'), route('platform.systems.roles')));
 
@@ -270,7 +280,7 @@ Route::screen('roles', RoleListScreen::class)
 // Example...
 Route::screen('example', ExampleScreen::class)
     ->name('platform.example')
-    ->breadcrumbs(fn (Trail $trail) => $trail
+    ->breadcrumbs(fn(Trail $trail) => $trail
         ->parent('platform.index')
         ->push('Example Screen'));
 
