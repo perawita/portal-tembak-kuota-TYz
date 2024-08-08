@@ -126,7 +126,7 @@ class client_xlv2
                     ]
                 );
 
-                return 'verifikasi nomor berhasil di lakukan. tolong informasikan ke admin. terimakasi sudah menggunakan layanan '. env('APP_NAME');
+                return 'verifikasi nomor berhasil di lakukan. tolong informasikan ke admin. terimakasi sudah menggunakan layanan';
 
             } else {
                 return 'verifikasi nomor gagal di lakukan. tolong masukan data yang di butuhkan dengan sesuai. terimakasi sudah menggunakan layanan '. env('APP_NAME');
