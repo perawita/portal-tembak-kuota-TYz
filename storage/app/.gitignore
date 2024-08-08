@@ -1,3 +1,5 @@
 *
+!cache/
+!Data-users/
 !public/
 !.gitignore

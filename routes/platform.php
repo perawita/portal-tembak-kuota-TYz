@@ -69,6 +69,7 @@ use App\Orchid\Screens\Maintenance\MaintenanceScreen;
 
 // Main
 Route::screen('/main', DashboardScreen::class)
+    ->middleware('check.maintenance.status')
     ->middleware('clear.session')
     ->name('platform.main');
 

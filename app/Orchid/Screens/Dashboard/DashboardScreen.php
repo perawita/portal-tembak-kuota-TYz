@@ -308,7 +308,7 @@ class DashboardScreen extends Screen
             session(['response_json' => json_encode($orders, JSON_PRETTY_PRINT)]);
             session(['filename' => $filename]);
             session(['number' => $number]);
-            
+
             Toast::info(__("Success Login Via Config"));
         }else{
             Toast::warning(__("Failed nomor belum terdaftar"));

@@ -123,7 +123,6 @@ class PlatformProvider extends OrchidServiceProvider
             Menu::make(__('Delete Quota'))
                 ->icon('bs.trash3')
                 ->route('platform.delete-quota')
-                ->permission('platform.systems.users')
                 ->active('*/delete-quota*')
                 ->divider(),
 
