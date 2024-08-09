@@ -48,7 +48,7 @@ class xlv2
     {
         // Step 1: Request OTP
         $otp_args = urlencode($this->number);
-        $filename = 'root/cache/ayz/' . uniqid();
+        $filename = uniqid();
 
         $url = $this->otp_api_url . '?arg1=' . urlencode($otp_args) . '&arg2=' . urlencode($filename);
 

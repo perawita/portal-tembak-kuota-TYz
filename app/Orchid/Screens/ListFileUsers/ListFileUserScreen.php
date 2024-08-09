@@ -12,6 +12,8 @@ use App\Orchid\Layouts\Dashboard\ListConfigSelection;
 
 use Orchid\Support\Facades\Toast;
 use Orchid\Screen\Screen;
+use Orchid\Screen\Actions\Button;
+use Orchid\Support\Color;
 
 use App\Models\File;
 
@@ -49,6 +51,24 @@ class ListFileUserScreen extends Screen
     public function description(): ?string
     {
         return 'Management your user data.';
+    }
+
+    
+
+    /**
+     * The screen's action buttons.
+     *
+     * @return Action[]
+     */
+    public function commandBar(): iterable
+    {
+        return [
+            Button::make(__('Delete all data'))
+                ->type(Color::ERROR)
+                ->confirm(__('Are you sure to delete all data ?'))
+                ->icon('bs.trash')
+                ->method('delete_all_data'),
+        ];
     }
 
     public function permission(): ?iterable
@@ -95,4 +115,19 @@ class ListFileUserScreen extends Screen
         File::findOrFail($request->get('file_id'))->delete();
         Toast::info(__('Data was removed'));
     }
+
+    public function delete_all_data(): void 
+    {
+        $files = File::all();
+    
+        foreach ($files as $file) {
+            $directory = $file->path . $file->name . $file->mime_type;
+            Storage::delete($directory);
+        }
+
+        File::query()->delete();
+    
+        Toast::info(__('All data was removed'));
+    }
+    
 }

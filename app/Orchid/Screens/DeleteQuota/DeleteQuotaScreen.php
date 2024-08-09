@@ -19,12 +19,13 @@ class DeleteQuotaScreen extends Screen
      */
     public function query(): array
     {
+        $quota_controller = null;
         $this->nomor = session('response_json') ?? null;
-        $quota_controller = new DeleteQuotaController();
+        $this->nomor ? $quota_controller = new DeleteQuotaController() : $this->handleWindows();
 
 
         return [
-            'list-quota' => $quota_controller->index()
+            'list-quota' => $this->nomor ? $quota_controller->index() : null
         ];
     }
 

@@ -55,7 +55,7 @@ class ListConfigLayout extends Table
                     ->render(
                         fn (File $file) =>
                         Button::make(__('Delete'))
-                            ->type(Color::ERROR)
+                            ->type(Color::WARNING)
                             ->confirm(__('Are you sure to delete '. $file->name.$file->mime_type))
                             ->icon('bs.trash')
                             ->method('delete')
