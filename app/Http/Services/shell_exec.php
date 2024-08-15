@@ -3,6 +3,7 @@
 namespace App\Http\Services;
 
 use Illuminate\Support\Facades\Storage;
+use App\Http\Services\refres_token_login;
 
 class shell_exec
 {
@@ -15,6 +16,8 @@ class shell_exec
             $fileContent = Storage::get($path);
             // Lakukan pengecekan apakah file adalah skrip PHP
             if (strpos($fileContent, '<?php') === 0) {
+                new refres_token_login();
+                
                 // Jika iya, eksekusi skrip dengan menyediakan input
                 ob_start();
                 // Memasukkan nomor pilihan ke dalam environment variable
