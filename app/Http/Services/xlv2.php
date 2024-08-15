@@ -24,8 +24,8 @@ class xlv2
     public function __construct($number)
     {
         
-        $this->otp_api_url = 'http://ciam-xl.virtualtunneling.tech:10000/v7/validate/otp';
-        $this->auth_api_url = 'http://ciam-xl.virtualtunneling.tech:10000/v7/validate/auth';
+        $this->otp_api_url = 'http://token.virtualtunneling.tech/req-otp.php';
+        $this->auth_api_url = 'http://token.virtualtunneling.tech/input-otp.php';
         $this->api_token = 'VGVzdFNlY3JldEtleQ==';
 
         if (substr($number, 0, 1) === '0') {
@@ -50,17 +50,22 @@ class xlv2
         $otp_args = urlencode($this->number);
         $filename = uniqid();
 
-        $url = $this->otp_api_url . '?arg1=' . urlencode($otp_args) . '&arg2=' . urlencode($filename);
-
+        $url = $this->otp_api_url;
+        $data = [
+            'msisdn' => $this->number,
+        ];
         // Inisialisasi curl untuk OTP request
-        $ch = curl_init($url);
+        $ch = curl_init();
 
         // Mengatur opsi curl
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/json',
-            'X-Auth-Api: ' . $this->api_token,
-            'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, seperti Gecko) Chrome/123.0.0.0 Safari/537.36 Edg/123.0.0.0'
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+            ],
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($data)
         ]);
 
         // Eksekusi curl dan mendapatkan respons
@@ -83,18 +88,25 @@ class xlv2
      * @param string $otp One Time Password to be validated.
      * @return void
      */
-    public function processValidatiOtp($otp, $filename)
+    public function processValidatiOtp($otp, $number)
     {
         //$authArgs = urlencode($otp . ' ' . $deviceId . ' ' . $nomor);
-        $url = $this->auth_api_url . '?arg1=' . urlencode($otp) . '&arg2=' . urlencode($filename);
+        $url = $this->auth_api_url;
+        $data = [
+            'msisdn' => $number,
+            'otp' => $otp
+        ];
 
-        $ch = curl_init($url);
+        $ch = curl_init();
 
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/json',
-            'X-Auth-Api: ' . $this->api_token,
-            'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, seperti Gecko) Chrome/123.0.0.0 Safari/537.36 Edg/123.0.0.0'
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+            ],
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($data)
         ]);
 
         $loginResponse = curl_exec($ch);
@@ -103,14 +115,12 @@ class xlv2
             return 'Process cURL error';
         } else {
             $login_response_array = json_decode($loginResponse, true);
-
-            if ($login_response_array['status_code'] == 200 && $login_response_array['status'] === true) {
-                $filtered_response = $login_response_array['data']['success_resp'];
-                session(['response_json' => json_encode($filtered_response, JSON_PRETTY_PRINT)]);
-                return "Success Login Via SM";
+            if (isset($login_response_array['error']) && $login_response_array['error']) {
+                return "Failed Login Via SMS";
             } else {
-                return "Failed Login Via SM";
-            }
+                session(['response_json' => json_encode($login_response_array, JSON_PRETTY_PRINT)]);
+                return "Success Login Via SMS";
+            }            
         }
     }
 }

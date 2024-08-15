@@ -205,7 +205,7 @@ class DashboardScreen extends Screen
             $authenticate ? $this->number_otp = $phone : $this->number_otp = null;
             Toast::info($message);
         } else if ($phone && $code_otp) {
-            $message = $service->processValidatiOtp($code_otp, session('filename'));
+            $message = $service->processValidatiOtp($code_otp, session('number'));
             $this->number_otp = null;
             Toast::info(__($message));
         }
